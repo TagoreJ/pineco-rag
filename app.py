@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ── Professional Light Mode CSS ───────────────────────────────────────────────
+# ── Dynamic Theme CSS ─────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -23,90 +23,66 @@ st.markdown("""
     font-family: 'Inter', sans-serif; 
 }
 .stApp { 
-    background-color: #f8fafc; 
-    color: #0f172a;
+    background-color: var(--secondary-background-color); 
+    color: var(--text-color);
 }
 
-/* Sidebar Styling */
+/* Sidebar Styling is naturally handled by Streamlit, but we can tweak borders */
 [data-testid="stSidebar"] {
-    background-color: #ffffff !important;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid rgba(128, 128, 128, 0.2);
 }
 [data-testid="stSidebar"] hr {
     margin: 1rem 0;
-    border-color: #e2e8f0;
+    border-color: rgba(128, 128, 128, 0.2);
 }
 [data-testid="stSidebar"] .stMarkdown h2, 
 [data-testid="stSidebar"] .stMarkdown h3 {
-    color: #334155;
     font-weight: 600;
-}
-[data-testid="stSidebar"] label {
-    color: #475569 !important;
-    font-weight: 500 !important;
-}
-
-/* Inputs & Buttons */
-.stTextInput input, .stNumberInput input {
-    background-color: #f1f5f9 !important;
-    border: 1px solid #cbd5e1 !important;
-    color: #0f172a !important;
-    border-radius: 8px !important;
-    transition: all 0.2s;
-}
-.stTextInput input:focus {
-    border-color: #3b82f6 !important;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-}
-
-.stButton > button {
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    transition: all 0.2s ease !important;
 }
 
 /* Primary Connect Button */
 .connect-btn > button {
-    background: #2563eb !important;
+    background: var(--primary-color) !important;
     color: white !important;
     border: none !important;
     width: 100% !important;
     padding: 0.6rem !important;
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
 }
 .connect-btn > button:hover {
-    background: #1d4ed8 !important;
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.15) !important;
+    filter: brightness(1.1);
     transform: translateY(-1px);
 }
 
 /* Header Area */
 .header-container {
-    background: #ffffff;
+    background: var(--background-color);
     padding: 2rem;
     border-radius: 12px;
     margin-bottom: 2rem;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.01), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     gap: 1.5rem;
 }
 .header-icon {
     font-size: 3rem;
-    background: #eff6ff;
+    background: rgba(128, 128, 128, 0.1);
     padding: 1rem;
     border-radius: 16px;
-    color: #2563eb;
+    color: var(--primary-color);
 }
 .header-text h1 { 
     font-size: 1.75rem; 
     font-weight: 700; 
-    color: #0f172a;
     margin: 0; 
 }
 .header-text p { 
-    color: #64748b; 
+    opacity: 0.8; 
     margin: 0.5rem 0 0; 
     font-size: 1rem; 
 }
@@ -117,7 +93,7 @@ st.markdown("""
     margin: 0 auto;
 }
 .user-bubble {
-    background: #2563eb;
+    background: var(--primary-color);
     color: white;
     padding: 1rem 1.25rem;
     border-radius: 16px 16px 4px 16px;
@@ -126,14 +102,14 @@ st.markdown("""
     width: fit-content;
     font-size: 0.95rem;
     line-height: 1.5;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .bot-bubble {
-    background: #ffffff;
-    color: #334155;
+    background: var(--background-color);
+    color: var(--text-color);
     padding: 1.25rem 1.5rem;
     border-radius: 16px 16px 16px 4px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(128, 128, 128, 0.2);
     margin: 0.5rem 0;
     max-width: 85%;
     width: fit-content;
@@ -146,14 +122,13 @@ st.markdown("""
 .source-section {
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
     font-size: 0.85rem;
-    color: #64748b;
+    opacity: 0.8;
 }
 .source-badge {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #475569;
+    background: rgba(128, 128, 128, 0.1);
+    border: 1px solid rgba(128, 128, 128, 0.2);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     margin-right: 0.5rem;
@@ -172,22 +147,22 @@ st.markdown("""
     margin-bottom: 1rem;
 }
 .status-connected {
-    background: #f0fdf4;
-    color: #166534;
-    border: 1px solid #bbf7d0;
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a; /* slightly tailored green */
+    border: 1px solid rgba(34, 197, 94, 0.2);
 }
 .status-disconnected {
-    background: #fef2f2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626; /* slightly tailored red */
+    border: 1px solid rgba(239, 68, 68, 0.2);
 }
 .status-dot {
     width: 8px; 
     height: 8px;
     border-radius: 50%;
 }
-.status-dot.online { background: #22c55e; box-shadow: 0 0 0 2px #bbf7d0; }
-.status-dot.offline { background: #ef4444; box-shadow: 0 0 0 2px #fecaca; }
+.status-dot.online { background: #22c55e; box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); }
+.status-dot.offline { background: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
 
 /* Stats Cards */
 .stats-grid {
@@ -197,8 +172,8 @@ st.markdown("""
     margin-bottom: 1rem;
 }
 .stat-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--background-color);
+    border: 1px solid rgba(128, 128, 128, 0.2);
     border-radius: 8px;
     padding: 0.75rem;
     text-align: center;
@@ -206,11 +181,11 @@ st.markdown("""
 .stat-value {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #2563eb;
+    color: var(--primary-color);
 }
 .stat-label {
     font-size: 0.75rem;
-    color: #64748b;
+    opacity: 0.7;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 0.25rem;
@@ -218,14 +193,13 @@ st.markdown("""
 
 /* Welcome Card */
 .welcome-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--background-color);
+    border: 1px solid rgba(128, 128, 128, 0.2);
     border-radius: 12px;
     padding: 2rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 .welcome-card h3 {
-    color: #0f172a;
     margin-top: 0;
 }
 .step-list {
@@ -238,8 +212,8 @@ st.markdown("""
     margin-bottom: 1rem;
 }
 .step-number {
-    background: #eff6ff;
-    color: #2563eb;
+    background: rgba(128, 128, 128, 0.1);
+    color: var(--primary-color);
     width: 24px;
     height: 24px;
     border-radius: 50%;
