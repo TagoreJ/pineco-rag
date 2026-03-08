@@ -4,6 +4,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pinecone import Pinecone
 import time
+import os
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -125,13 +126,16 @@ st.markdown("""
     border-top: 1px solid rgba(128, 128, 128, 0.2);
     font-size: 0.85rem;
     opacity: 0.8;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
 }
 .source-badge {
     background: rgba(128, 128, 128, 0.1);
     border: 1px solid rgba(128, 128, 128, 0.2);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
-    margin-right: 0.5rem;
     display: inline-block;
     font-family: monospace;
 }
@@ -242,6 +246,8 @@ def init_state():
 Answer the user's question using ONLY the context provided below.
 If the context does not contain the answer, politely state that you cannot answer based on the provided documents.
 Be clear, concise, and format your response well using markdown.
+
+DO NOT append a "Sources:" or "References:" section at the end of your response. The system will automatically display the sources below your answer.
 
 History: {history}
 
@@ -389,8 +395,10 @@ def process_query(query: str):
             
             # Construct a citation string dynamically based on available metadata
             src_parts = []
-            if "source" in metadata or "source_file" in metadata:
-                src_parts.append(metadata.get("source") or metadata.get("source_file"))
+            raw_source = metadata.get("source") or metadata.get("source_file")
+            if raw_source:
+                filename = os.path.basename(str(raw_source).replace('\\', '/'))
+                src_parts.append(filename)
             if "page" in metadata:
                 src_parts.append(f"Page {metadata['page']}")
             if "chunk" in metadata:
@@ -488,7 +496,7 @@ for msg in st.session_state.messages:
         sources_html = ""
         if msg.get("sources"):
             badges = "".join([f"<span class='source-badge'>{src}</span>" for src in msg['sources']])
-            sources_html = f"<div class='source-section'><strong>Sources:</strong><br>{badges}</div>"
+            sources_html = f"<div class='source-section'><strong>Sources:</strong>{badges}</div>"
             
         st.markdown(f"<div class='bot-bubble'>{msg['content']}{sources_html}</div>", unsafe_allow_html=True)
 
