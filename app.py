@@ -3,322 +3,540 @@ from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pinecone import Pinecone
+import time
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="SSSIHL Knowledge Assistant",
-    page_icon="🕉️",
-    layout="wide"
+    page_title="Universal RAG Assistant",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
+# ── Professional Light Mode CSS ───────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-* { font-family: 'Inter', sans-serif; }
+/* Base Styles */
+* { 
+    font-family: 'Inter', sans-serif; 
+}
+.stApp { 
+    background-color: #f8fafc; 
+    color: #0f172a;
+}
 
-.stApp { background-color: #f0f4f9; }
-
+/* Sidebar Styling */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #004c97 0%, #002d62 100%) !important;
+    background-color: #ffffff !important;
+    border-right: 1px solid #e2e8f0;
 }
-[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span,
-[data-testid="stSidebar"] div { color: white !important; }
+[data-testid="stSidebar"] hr {
+    margin: 1rem 0;
+    border-color: #e2e8f0;
+}
+[data-testid="stSidebar"] .stMarkdown h2, 
+[data-testid="stSidebar"] .stMarkdown h3 {
+    color: #334155;
+    font-weight: 600;
+}
+[data-testid="stSidebar"] label {
+    color: #475569 !important;
+    font-weight: 500 !important;
+}
 
-[data-testid="stSidebar"] input {
-    background: rgba(255,255,255,0.12) !important;
-    border: 1px solid rgba(255,255,255,0.25) !important;
-    color: white !important;
+/* Inputs & Buttons */
+.stTextInput input, .stNumberInput input {
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
     border-radius: 8px !important;
-}
-
-.connect-btn > button {
-    background: linear-gradient(135deg, #ea7600, #ffae62) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    width: 100% !important;
-    padding: 0.6rem !important;
-}
-
-.header-box {
-    background: linear-gradient(135deg, #004c97 0%, #002d62 100%);
-    padding: 1.8rem 2rem;
-    border-radius: 16px;
-    margin-bottom: 1.5rem;
-    color: white;
-}
-
-.header-box h1 { font-size: 1.8rem; font-weight: 700; margin: 0; }
-.header-box p  { opacity: 0.85; margin: 0.3rem 0 0; font-size: 0.95rem; }
-
-.user-bubble {
-    background: #004c97;
-    color: white;
-    padding: 0.9rem 1.2rem;
-    border-radius: 18px 18px 4px 18px;
-    margin: 0.4rem 0 0.4rem auto;
-    max-width: 72%;
-    width: fit-content;
-    margin-left: auto;
-    font-size: 0.97rem;
-    line-height: 1.6;
-}
-
-.bot-bubble {
-    background: white;
-    color: #1a1a1a;
-    padding: 1rem 1.3rem;
-    border-radius: 18px 18px 18px 4px;
-    border-left: 4px solid #ea7600;
-    margin: 0.4rem 0;
-    max-width: 82%;
-    width: fit-content;
-    font-size: 0.97rem;
-    line-height: 1.6;
-    box-shadow: 0 2px 12px rgba(0,76,151,0.08);
-}
-
-.source-line {
-    font-size: 0.8rem;
-    color: #ea7600;
-    margin-top: 0.6rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid #f0f0f0;
-}
-
-.chip-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.2rem; }
-.chip {
-    background: white;
-    border: 2px solid #ea7600;
-    color: #004c97;
-    padding: 0.45rem 1rem;
-    border-radius: 20px;
-    font-size: 0.88rem;
-    cursor: pointer;
     transition: all 0.2s;
 }
-.chip:hover { background: #ea7600; color: white; }
-
-.status-dot {
-    display: inline-block;
-    width: 9px; height: 9px;
-    border-radius: 50%;
-    margin-right: 6px;
-    vertical-align: middle;
+.stTextInput input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
 }
-.online  { background: #4ade80; }
-.offline { background: #f87171; }
 
-.stat-box {
-    background: white;
-    border-radius: 10px;
-    padding: 0.8rem 1rem;
-    margin-bottom: 0.5rem;
-    border-left: 3px solid #ea7600;
+.stButton > button {
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Primary Connect Button */
+.connect-btn > button {
+    background: #2563eb !important;
+    color: white !important;
+    border: none !important;
+    width: 100% !important;
+    padding: 0.6rem !important;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1) !important;
+}
+.connect-btn > button:hover {
+    background: #1d4ed8 !important;
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.15) !important;
+    transform: translateY(-1px);
+}
+
+/* Header Area */
+.header-container {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.01), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.header-icon {
+    font-size: 3rem;
+    background: #eff6ff;
+    padding: 1rem;
+    border-radius: 16px;
+    color: #2563eb;
+}
+.header-text h1 { 
+    font-size: 1.75rem; 
+    font-weight: 700; 
+    color: #0f172a;
+    margin: 0; 
+}
+.header-text p { 
+    color: #64748b; 
+    margin: 0.5rem 0 0; 
+    font-size: 1rem; 
+}
+
+/* Chat Messages */
+.chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+.user-bubble {
+    background: #2563eb;
+    color: white;
+    padding: 1rem 1.25rem;
+    border-radius: 16px 16px 4px 16px;
+    margin: 0.5rem 0 0.5rem auto;
+    max-width: 80%;
+    width: fit-content;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+}
+.bot-bubble {
+    background: #ffffff;
+    color: #334155;
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px 16px 16px 4px;
+    border: 1px solid #e2e8f0;
+    margin: 0.5rem 0;
+    max-width: 85%;
+    width: fit-content;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Sources & Metadata */
+.source-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+.source-badge {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+    display: inline-block;
+    font-family: monospace;
+}
+
+/* Status Indicators */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+.status-connected {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+.status-disconnected {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+.status-dot {
+    width: 8px; 
+    height: 8px;
+    border-radius: 50%;
+}
+.status-dot.online { background: #22c55e; box-shadow: 0 0 0 2px #bbf7d0; }
+.status-dot.offline { background: #ef4444; box-shadow: 0 0 0 2px #fecaca; }
+
+/* Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem;
+    text-align: center;
+}
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2563eb;
+}
+.stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.25rem;
+}
+
+/* Welcome Card */
+.welcome-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.welcome-card h3 {
+    color: #0f172a;
+    margin-top: 0;
+}
+.step-list {
+    margin-top: 1rem;
+}
+.step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.step-number {
+    background: #eff6ff;
+    color: #2563eb;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    flex-shrink: 0;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Session state defaults ────────────────────────────────────────────────────
-for key, default in {
-    "messages"  : [],
-    "connected" : False,
-    "embeddings": None,
-    "index"     : None,
-    "llm"       : None,
-    "tokens"    : 0,
-    "msg_count" : 0,
-}.items():
-    if key not in st.session_state:
-        st.session_state[key] = default
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("## 🕉️ SSSIHL RAG")
-    st.markdown("---")
-    st.markdown("### ⚙️ API Settings")
-
-    groq_key     = st.text_input("Groq API Key",     type="password", placeholder="gsk_...")
-    pinecone_key = st.text_input("Pinecone API Key", type="password", placeholder="pcsk_...")
-    index_name   = st.text_input("Index Name",       value="saiinst")
-
-    st.markdown("### 🎛️ Retrieval Settings")
-    top_k     = st.slider("Chunks to retrieve", 3, 10, 5)
-    min_score = st.slider("Min relevance score", 0.1, 0.9, 0.45, 0.05)
-
-    st.markdown('<div class="connect-btn">', unsafe_allow_html=True)
-    connect = st.button("🚀 Connect & Start RAG")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Status
-    st.markdown("---")
-    if st.session_state.connected:
-        st.markdown("<span class='status-dot online'></span>**Connected**", unsafe_allow_html=True)
-    else:
-        st.markdown("<span class='status-dot offline'></span>**Not connected**", unsafe_allow_html=True)
-
-    # Stats
-    st.markdown("### 📊 Session Stats")
-    st.markdown(f"<div class='stat-box'>💬 Messages: <b>{st.session_state.msg_count}</b></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='stat-box'>🔢 Tokens: <b>{st.session_state.tokens}</b></div>", unsafe_allow_html=True)
-
-    if st.button("🗑️ Clear Chat"):
-        st.session_state.messages  = []
-        st.session_state.msg_count = 0
-        st.session_state.tokens    = 0
-        st.rerun()
-
-    st.markdown("---")
-    st.markdown("""
-    <div style='font-size:0.78rem; opacity:0.75; line-height:1.8;'>
-    🧠 Groq LLaMA 3.1 8B<br>
-    📦 Pinecone Vector DB<br>
-    ⚡ FastEmbed BAAI BGE<br>
-    🌐 <a href='https://www.sssihl.edu.in' style='color:#ffae62;'>sssihl.edu.in</a>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ── Connect logic ─────────────────────────────────────────────────────────────
-if connect:
-    if not groq_key or not pinecone_key or not index_name:
-        st.sidebar.error("⚠️ Fill all 3 fields!")
-    else:
-        with st.spinner("🔄 Loading models and connecting..."):
-            try:
-                st.session_state.embeddings = FastEmbedEmbeddings(
-                    model_name="BAAI/bge-small-en-v1.5"
-                )
-                pc = Pinecone(api_key=pinecone_key)
-                st.session_state.index = pc.Index(index_name)
-                st.session_state.llm   = ChatGroq(
-                    model_name="llama-3.1-8b-instant",
-                    temperature=0.2,
-                    max_tokens=1024,
-                    api_key=groq_key
-                )
-                st.session_state.connected = True
-                st.sidebar.success("✅ Connected!")
-                st.rerun()
-            except Exception as e:
-                st.sidebar.error(f"❌ {e}")
-
-# ── Prompt template ───────────────────────────────────────────────────────────
-PROMPT = ChatPromptTemplate.from_template("""
-You are an expert assistant for Sri Sathya Sai Institute of Higher Learning (SSSIHL).
-Answer ONLY using the context below. Be concise and cite the source file and page.
-If not found say: "This information is not available in the provided documents."
+# ── State Management ──────────────────────────────────────────────────────────
+def init_state():
+    defaults = {
+        "messages": [],
+        "connected": False,
+        "embeddings": None,
+        "index": None,
+        "llm": None,
+        "tokens_used": 0,
+        "msg_count": 0,
+        "system_prompt": """You are a helpful, professional AI assistant.
+Answer the user's question using ONLY the context provided below.
+If the context does not contain the answer, politely state that you cannot answer based on the provided documents.
+Be clear, concise, and format your response well using markdown.
 
 History: {history}
-Context: {context}
+
+Context:
+{context}
+
 Question: {question}
-Answer:
-""")
 
-# ── RAG functions ─────────────────────────────────────────────────────────────
-def retrieve(query):
-    vec     = st.session_state.embeddings.embed_query(query)
-    results = st.session_state.index.query(vector=vec, top_k=top_k, include_metadata=True)
-    parts, sources = [], []
-    for m in results["matches"]:
-        if m["score"] < min_score:
-            continue
-        text = m["metadata"].get("text", "")[:600]
-        src  = m["metadata"].get("source_file", "doc")
-        pg   = m["metadata"].get("page", "?")
-        sc   = round(m["score"], 3)
-        parts.append(f"[{src} | p.{pg} | {sc}]\n{text}")
-        sources.append(f"{src} p.{pg}")
-    return "\n\n---\n\n".join(parts), list(set(sources))
+Answer:"""
+    }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
 
-def ask(question):
-    vec     = st.session_state.embeddings.embed_query(question)
-    results = st.session_state.index.query(vector=vec, top_k=1, include_metadata=True)
-    if not results["matches"] or results["matches"][0]["score"] < min_score:
-        return "⚠️ Question doesn't seem related to the documents. Please ask something relevant to SSSIHL.", []
+init_state()
 
-    history = "\n".join([
-        f"{'User' if m['role']=='user' else 'Bot'}: {m['content']}"
-        for m in st.session_state.messages[-6:]
-    ])
-    context, sources = retrieve(f"{history}\n{question}")
-    if not context:
-        return "⚠️ No relevant content found. Try rephrasing.", []
+# ── Sidebar Configuration ─────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("## ⚙️ Configuration")
+    
+    # Status display at the top of sidebar
+    if st.session_state.connected:
+        st.markdown("""
+        <div class="status-indicator status-connected">
+            <div class="status-dot online"></div>
+            <span>System Connected</span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div class="status-indicator status-disconnected">
+            <div class="status-dot offline"></div>
+            <span>System Disconnected</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("---")
 
-    response = st.session_state.llm.invoke(
-        PROMPT.format_messages(history=history or "None", context=context, question=question)
-    )
-    if hasattr(response, "usage_metadata") and response.usage_metadata:
-        st.session_state.tokens += response.usage_metadata.get("total_tokens", 0)
+    with st.expander("Provider Credentials", expanded=not st.session_state.connected):
+        groq_key = st.text_input("Groq API Key", type="password", help="Required for LLM generation")
+        pinecone_key = st.text_input("Pinecone API Key", type="password", help="Required for Vector DB access")
+        
+    with st.expander("Database Settings", expanded=not st.session_state.connected):
+        index_name = st.text_input("Pinecone Index Name")
+        top_k = st.number_input("Documents to Retrieve (Top K)", min_value=1, max_value=20, value=5)
+        min_score = st.slider("Minimum Relevance Score", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+        
+    with st.expander("Advanced Output Settings"):
+        st.session_state.system_prompt = st.text_area(
+            "System Prompt Template", 
+            value=st.session_state.system_prompt,
+            height=200,
+            help="Customize how the AI responds. Must include {history}, {context}, and {question} placeholders."
+        )
 
-    return response.content, sources
+    st.markdown('<div class="connect-btn">', unsafe_allow_html=True)
+    if st.button("Initialize Pipeline", use_container_width=True):
+        if not all([groq_key, pinecone_key, index_name]):
+            st.error("Please provide all required credentials and index name.")
+        else:
+            with st.spinner("Initializing components..."):
+                try:
+                    # 1. Init Embeddings
+                    st.session_state.embeddings = FastEmbedEmbeddings(
+                        model_name="BAAI/bge-small-en-v1.5"
+                    )
+                    
+                    # 2. Init Vector DB
+                    pc = Pinecone(api_key=pinecone_key)
+                    st.session_state.index = pc.Index(index_name)
+                    
+                    # 3. Init LLM
+                    st.session_state.llm = ChatGroq(
+                        model_name="llama-3.1-8b-instant",
+                        temperature=0.1,  # Lower temperature for more factual RAG
+                        max_tokens=1024,
+                        api_key=groq_key
+                    )
+                    
+                    # 4. Verify connection (attempt fetch stats)
+                    _ = st.session_state.index.describe_index_stats()
+                    
+                    st.session_state.connected = True
+                    st.success("Successfully initialized!")
+                    time.sleep(0.5)
+                    st.rerun()
+                except Exception as e:
+                    st.session_state.connected = False
+                    st.error(f"Initialization failed: {str(e)}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# ── Header ────────────────────────────────────────────────────────────────────
+    if st.session_state.connected:
+        st.markdown("---")
+        st.markdown("### Session Statistics")
+        st.markdown(f"""
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{st.session_state.msg_count}</div>
+                <div class="stat-label">Interactions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{st.session_state.tokens_used:,}</div>
+                <div class="stat-label">Est. Tokens</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("Clear Conversation", type="secondary", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.msg_count = 0
+            st.session_state.tokens_used = 0
+            st.rerun()
+
+# ── Core Functions ────────────────────────────────────────────────────────────
+def build_prompt():
+    return ChatPromptTemplate.from_template(st.session_state.system_prompt)
+
+def process_query(query: str):
+    """Handles embedding, retrieval, and generation."""
+    try:
+        # 1. Embed query
+        vector = st.session_state.embeddings.embed_query(query)
+        
+        # 2. Retrieve
+        results = st.session_state.index.query(
+            vector=vector, 
+            top_k=top_k, 
+            include_metadata=True
+        )
+        
+        if not results.get("matches"):
+            return "Cannot retrieve documents. The index might be empty.", []
+            
+        # 3. Process matches
+        contexts = []
+        sources = []
+        
+        for match in results["matches"]:
+            score = match.get("score", 0)
+            if score < min_score:
+                continue
+                
+            metadata = match.get("metadata", {})
+            text = metadata.get("text", "")
+            
+            # Construct a citation string dynamically based on available metadata
+            src_parts = []
+            if "source" in metadata or "source_file" in metadata:
+                src_parts.append(metadata.get("source") or metadata.get("source_file"))
+            if "page" in metadata:
+                src_parts.append(f"Page {metadata['page']}")
+            if "chunk" in metadata:
+                src_parts.append(f"Chunk {metadata['chunk']}")
+                
+            citation = " | ".join(src_parts) if src_parts else "Unknown Source"
+            
+            contexts.append(f"[Source: {citation}, Relevance: {score:.2f}]\n{text}")
+            sources.append(citation)
+            
+        if not contexts:
+            return "No information found in the database that meets the minimum relevance threshold.", []
+            
+        combined_context = "\n\n---\n\n".join(contexts)
+        unique_sources = list(set(sources))
+        
+        # 4. Prepare History
+        history = "\n".join([
+            f"{'User' if m['role']=='user' else 'Assistant'}: {m['content']}"
+            for m in st.session_state.messages[-4:] # Keep last 2 turns to save context window
+        ])
+        
+        # 5. Generate
+        prompt = build_prompt()
+        messages = prompt.format_messages(
+            history=history or "No previous history.",
+            context=combined_context,
+            question=query
+        )
+        
+        response = st.session_state.llm.invoke(messages)
+        
+        # 6. Track metrics
+        if hasattr(response, "usage_metadata") and response.usage_metadata:
+            st.session_state.tokens_used += response.usage_metadata.get("total_tokens", 0)
+            
+        return response.content, unique_sources
+        
+    except Exception as e:
+        return f"An error occurred during processing: {str(e)}", []
+
+
+# ── Main UI ───────────────────────────────────────────────────────────────────
 st.markdown("""
-<div class='header-box'>
-    <h1>🕉️ SSSIHL Knowledge Assistant</h1>
-    <p>Sri Sathya Sai Institute of Higher Learning — A Modern Gurukula</p>
+<div class='header-container'>
+    <div class='header-icon'>📚</div>
+    <div class='header-text'>
+        <h1>Universal Knowledge Assistant</h1>
+        <p>Connect your Pinecone Vector Database and chat with your documents Instantly.</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Not connected state ───────────────────────────────────────────────────────
 if not st.session_state.connected:
-    st.info("👈 Enter your API keys in the sidebar and click **Connect & Start RAG** to begin.")
     st.markdown("""
-    <div style='background:white; padding:1.5rem; border-radius:12px; border-left:4px solid #004c97;'>
-    <b>How to use:</b><br><br>
-    1️⃣ Get your <b>Groq API key</b> from <a href='https://console.groq.com' target='_blank'>console.groq.com</a><br>
-    2️⃣ Get your <b>Pinecone API key</b> from <a href='https://app.pinecone.io' target='_blank'>app.pinecone.io</a><br>
-    3️⃣ Enter your <b>Pinecone index name</b> (e.g. saiinst)<br>
-    4️⃣ Click <b>Connect & Start RAG</b><br>
-    5️⃣ Start asking questions from your documents! 🎉
+    <div class="welcome-card">
+        <h3>👋 Welcome! Let's get started.</h3>
+        <p style="color: #64748b; margin-bottom: 2rem;">Configure your environment to start querying your documents.</p>
+        
+        <div class="step-list">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div>
+                    <strong>API Credentials</strong><br>
+                    <span style="color: #64748b; font-size: 0.9rem;">Enter your Groq API key for the LLM and your Pinecone API key for vector storage in the sidebar.</span>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div>
+                    <strong>Database Target</strong><br>
+                    <span style="color: #64748b; font-size: 0.9rem;">Specify the exact name of your Pinecone index where your vectors are stored.</span>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div>
+                    <strong>Initialize</strong><br>
+                    <span style="color: #64748b; font-size: 0.9rem;">Click the Initialize Pipeline button to establish connections and load the embedding model.</span>
+                </div>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
 
-# ── Suggestion chips (first visit) ───────────────────────────────────────────
-if not st.session_state.messages:
-    st.markdown("**💡 Try asking:**")
-    c1, c2, c3, c4 = st.columns(4)
-    chips = {
-        c1: "What programs does SSSIHL offer?",
-        c2: "Tell me about the admission process",
-        c3: "What is integral education at SSSIHL?",
-        c4: "Describe the campus facilities"
-    }
-    for col, text in chips.items():
-        if col.button(text, use_container_width=True):
-            st.session_state["pending"] = text
-            st.rerun()
+# Chat Interface
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
-# ── Chat history display ──────────────────────────────────────────────────────
+# Render history
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.markdown(f"<div class='user-bubble'>👤 &nbsp;{msg['content']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='user-bubble'>{msg['content']}</div>", unsafe_allow_html=True)
     else:
-        src_html = ""
+        sources_html = ""
         if msg.get("sources"):
-            src_html = f"<div class='source-line'>📚 Sources: {' &nbsp;|&nbsp; '.join(msg['sources'])}</div>"
-        st.markdown(f"<div class='bot-bubble'>🕉️ &nbsp;{msg['content']}{src_html}</div>", unsafe_allow_html=True)
+            badges = "".join([f"<span class='source-badge'>{src}</span>" for src in msg['sources']])
+            sources_html = f"<div class='source-section'><strong>Sources:</strong><br>{badges}</div>"
+            
+        st.markdown(f"<div class='bot-bubble'>{msg['content']}{sources_html}</div>", unsafe_allow_html=True)
 
-# ── Chat input ────────────────────────────────────────────────────────────────
-question = st.chat_input("Ask anything about SSSIHL...")
+st.markdown('</div>', unsafe_allow_html=True)
 
-if "pending" in st.session_state:
-    question = st.session_state.pop("pending")
-
-if question:
-    st.session_state.messages.append({"role": "user", "content": question})
+# Input
+if prompt := st.chat_input("Ask a question about your documents..."):
+    # Render user query
+    st.session_state.messages.append({"role": "user", "content": prompt})
     st.session_state.msg_count += 1
+    st.rerun()
 
-    with st.spinner("🧠 Searching documents..."):
-        answer, sources = ask(question)
-
+# Handle pending response
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+    user_query = st.session_state.messages[-1]["content"]
+    
+    with st.spinner("Analyzing documents to formulate answer..."):
+        answer, sources = process_query(user_query)
+        
     st.session_state.messages.append({
-        "role": "assistant", "content": answer, "sources": sources
+        "role": "assistant", 
+        "content": answer, 
+        "sources": sources
     })
     st.rerun()
